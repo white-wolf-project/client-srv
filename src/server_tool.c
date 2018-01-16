@@ -85,7 +85,6 @@ int leave_srv(void)
 	return 0;
 }
 
-
 void manage_co(int sock)
 {
 	char buffer[256];
@@ -101,7 +100,7 @@ void manage_co(int sock)
 		}
 		if (buf_len == 0)
 			break;
-		printf("%s",buffer);
+		printf("%s\r\n",buffer);
 		fprintf(fp, "%s\n", buffer);
 
 		memset(buffer, 0, 256);
