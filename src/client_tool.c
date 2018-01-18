@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <libxml/parser.h>
 #include <include/client_tool.h>
+char  *ipaddr, *port, *bin2run;
 
 int init_client (int server, char *host, char *port, struct addrinfo **results)
 {
@@ -25,11 +26,54 @@ int init_client (int server, char *host, char *port, struct addrinfo **results)
 	return 0;
 }
 
-int send_data(int sock2server, const char* data2send){
+int exec_bin(int sock2server, const char* bin2exec){
+	
+	int tube[2];
+	char buf[1024];
+	int n;
+	if (pipe(tube) != 0){
+		printf("err\n");
+		exit(0);
+	}
 
-	if (write(sock2server, data2send, strlen(data2send)) < 0) {
-		perror("write");
-		return -1;
+	switch(fork())
+	{
+		case -1:
+			printf("err case -1\n");
+			break;
+		case 0: 
+			close(tube[0]);
+			if (dup2(tube[1], STDOUT_FILENO) < 0) {
+				perror("dup");
+				exit(EXIT_FAILURE);
+			}
+			
+			system(bin2exec);
+			#ifdef DEBUG
+				perror("system");
+			#endif
+			close(tube[1]);
+			break;
+		default: 
+			close(tube[1]);
+			while(1){
+				n = read(tube[0], buf, sizeof(buf));
+				
+				if (n > 0)
+				{
+					if (write(sock2server, buf, strlen(buf)) < 0) {
+						perror("write");
+						break;
+					}
+					memset(buf, 0, sizeof(buf));
+				} else if (n == 0){
+					break;
+				} else {
+					exit(1);
+				}
+			}
+			close(tube[0]);
+			break;
 	}
 	return 0;
 }
@@ -63,7 +107,7 @@ void print_xml(xmlNode * node, int indent_len)
 						port = (is_leaf(node)?xmlNodeGetContent(node):xmlGetProp(node, "id"));
 						break;
 					case 2:
-						data = is_leaf(node)?xmlNodeGetContent(node):xmlGetProp(node, "id");
+						bin2run = is_leaf(node)?xmlNodeGetContent(node):xmlGetProp(node, "id");
 						break;
 				}
 				/* you can print all values here if i == 2, usefull for debug, I keep it here*/
