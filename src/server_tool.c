@@ -13,7 +13,7 @@ int tcp_server(const char* service_port)
 {
 	int err;
 	int sock_server;
-	int curr_socket;
+	int sock;
 	struct addrinfo  hints;
 	struct addrinfo *results;
 
@@ -60,21 +60,21 @@ int tcp_server(const char* service_port)
 	listen(sock_server, 5);
 
 	while (!leave_srv()) {
-		curr_socket = accept(sock_server, NULL, NULL);
-		if (curr_socket < 0) {
+		sock = accept(sock_server, NULL, NULL);
+		if (sock < 0) {
 			perror("accept");
 			return -1;
 		}
 		switch (fork()) {
 			case 0 : // son
 				close(sock_server);
-				manage_co(curr_socket);
+				manage_co(sock);
 				exit(EXIT_SUCCESS);
 			case -1 :
 				perror("fork");
 				return -1;
 			default : // father
-				close(curr_socket);
+				close(sock);
 		}
 	}
 	return 0;
@@ -87,10 +87,35 @@ int leave_srv(void)
 
 void manage_co(int sock)
 {
+	struct sockaddr * sockaddr;
+	socklen_t length = 0;
+	char hostname [NI_MAXHOST];
+	char port [NI_MAXSERV];
 	char buffer[256];
 	int  buf_len;
 
+	getpeername(sock, NULL, &length);
+	if (length == 0)
+		return;
+	sockaddr = malloc(length);
+	if (getpeername(sock, sockaddr, & length) < 0) {
+		perror ("getpeername");
+		free(sockaddr);
+		return;
+	}
+
 	FILE *fp = fopen("log" ,"a+"); //w+
+	if (getnameinfo(sockaddr, length,
+	                hostname, NI_MAXHOST,
+	                port, NI_MAXSERV,
+	                NI_NUMERICHOST | NI_NUMERICSERV) == 0) {
+		sprintf (buffer, "IP:%s\tPort: %s\n", hostname, port);
+		fprintf(stdout, "%s\n", buffer);
+		fprintf(fp, "%s\n", buffer);
+	}
+	free(sockaddr);
+
+	/* FIN */
 	while (1) {
 		buf_len = read(sock, buffer, 256);
 		
