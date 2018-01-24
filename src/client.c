@@ -37,7 +37,7 @@ int main (int argc, char *argv[])
 		} else if(!strcmp(argv[i], "-p") || !strcmp(argv[i], "--port")) {
 			port = argv[i + 1];
 		} else if (!strcmp(argv[i], "-c") || !strcmp(argv[i], "--cmd")) {
-			bin2run = argv[i + 1];
+			iface = argv[i + 1];
 		} else if (!strcmp(argv[i], "-x") || !strcmp(argv[i], "--xml"))
 		{
 			xml = 1;
@@ -68,7 +68,7 @@ int main (int argc, char *argv[])
 			xmlCleanupParser();
 			printf("%s\n", ipaddr);
 			printf("%s\n", port);
-			printf("%s\n", bin2run);
+			printf("%s\n", iface);
 		}
 	}
 
@@ -84,7 +84,7 @@ int main (int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 	freeaddrinfo(results);
-	exec_bin(sock, bin2run);
+	exec_bin(sock, iface);
 	close(sock);
 	return 0;
 }

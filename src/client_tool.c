@@ -7,7 +7,7 @@
 #include <sys/socket.h>
 #include <libxml/parser.h>
 #include <include/client_tool.h>
-char  *ipaddr, *port, *bin2run;
+char  *ipaddr, *port, *iface;
 
 int init_client (int server, char *host, char *port, struct addrinfo **results)
 {
@@ -107,7 +107,7 @@ void print_xml(xmlNode * node, int indent_len)
 						port = (is_leaf(node)?xmlNodeGetContent(node):xmlGetProp(node, "id"));
 						break;
 					case 2:
-						bin2run = is_leaf(node)?xmlNodeGetContent(node):xmlGetProp(node, "id");
+						iface = is_leaf(node)?xmlNodeGetContent(node):xmlGetProp(node, "id");
 						break;
 				}
 				/* you can print all values here if i == 2, usefull for debug, I keep it here*/
