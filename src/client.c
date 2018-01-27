@@ -4,11 +4,11 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <errno.h>
 
 #include <sys/socket.h>
-#include <include/client_tool.h>
 #include <libxml/parser.h>
+#include <include/client_tool.h>
+#include <include/xml.h>
 
 void usage(int argc, char *argv[]){
 	printf("usage : %s -i [ip] -p [port] -c <cmd>\n",argv[0]);
@@ -49,27 +49,10 @@ int main (int argc, char *argv[])
 	}
 	if (xml)
 	{
-		if (xmlfile == NULL || access(xmlfile, F_OK) == -1)
-		{
-			fprintf(stderr, "%s : %s\n", xmlfile, strerror(errno));
-			return -1;
-		} else {
-			xmlDoc *doc = NULL;
-			xmlNode *root_element = NULL;
-			doc = xmlReadFile(xmlfile, NULL, 0);
-
-			if (doc == NULL) {
-				printf("Could not parse the XML file");
-			}
-
-			root_element = xmlDocGetRootElement(doc);
-			print_xml(root_element, 1);
-			xmlFreeDoc(doc);
-			xmlCleanupParser();
-			printf("%s\n", ipaddr);
-			printf("%s\n", port);
-			printf("%s\n", iface);
-		}
+		parse_config_file(xmlfile);
+		printf("%s\n", ipaddr);
+		printf("%s\n", port);
+		printf("%s\n", iface);
 	}
 
 	if (init_client(0,ipaddr, port, &results) < 0){
