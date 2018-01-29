@@ -55,8 +55,9 @@ int tcp_server(const char* service_port)
 	                hostname, NI_MAXHOST,
 	                servname, NI_MAXSERV,
 	                NI_NUMERICHOST | NI_NUMERICSERV) == 0) 
+		#ifdef DEBUG
 		fprintf (stdout, "IP = %s, Port = %s \n", hostname, servname);
-
+		#endif
 	listen(sock_server, 5);
 
 	while (!leave_srv()) {
