@@ -6,6 +6,8 @@
 #include <include/xml.h>
 #include <include/client_tool.h>
 
+char  *ipaddr, *port, *iface;
+
 int is_leaf(xmlNode * node)
 {
 	xmlNode * child = node->children;
