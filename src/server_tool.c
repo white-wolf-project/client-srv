@@ -105,7 +105,7 @@ void manage_co(int sock)
 		return;
 	}
 
-	FILE *fp = fopen("log" ,"a+"); //w+
+	FILE *fp = fopen("server.log" ,"a+"); //w+
 	if (getnameinfo(sockaddr, length,
 	                hostname, NI_MAXHOST,
 	                port, NI_MAXSERV,
