@@ -1,6 +1,6 @@
 CC = gcc 
 SRC = src
-DEBUG ?=
+DEBUG ?= 1
 arch = $(shell arch)
 ifeq ($(DEBUG), 1)
 	DBG = -DDEBUG
@@ -10,17 +10,18 @@ OBJECTS = src/client.o \
 		  src/client_tool.o\
 		  src/server.o \
 		  src/server_tool.o \
-		  src/xml.o
+		  src/xml.o \
+		  src/ssl.o
 
 all : client server
 
-client :  src/client.o src/client_tool.o src/xml.o
+client :  src/client.o src/client_tool.o src/xml.o src/ssl.o
 	@echo "LD      $@"
-	@$(CC) src/client.o src/client_tool.o src/xml.o $(DBG) -lxml2 -o  $@
+	@$(CC) src/client.o src/client_tool.o src/xml.o src/ssl.o $(DBG) -lxml2 -lssl -lcrypto -o  $@
 
-server : src/server.o src/server_tool.o src/xml.o
+server : src/server.o src/server_tool.o src/xml.o src/ssl.o
 	@echo "LD      $@"
-	@$(CC) src/server.o src/server_tool.o src/xml.o  $(DBG) -lxml2 -o  $@
+	@$(CC) src/server.o src/server_tool.o src/xml.o src/ssl.o $(DBG) -lxml2 -lssl -lcrypto -o  $@
 
 $(SRC)/%.o : $(SRC)/%.c
 	@echo "CC	$<"

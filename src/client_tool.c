@@ -6,7 +6,12 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <libxml/parser.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+
 #include <include/client_tool.h>
+#include <include/ssl.h>
+
 char  *ipaddr, *port, *iface;
 
 int init_client (int server, char *host, char *port, struct addrinfo **results)
@@ -26,7 +31,7 @@ int init_client (int server, char *host, char *port, struct addrinfo **results)
 	return 0;
 }
 
-int exec_bin(int sock2server, const char* bin2exec){
+int exec_bin(SSL *ssl, const char* bin2exec){
 	
 	int tube[2];
 	char buf[1024];
@@ -61,7 +66,7 @@ int exec_bin(int sock2server, const char* bin2exec){
 				
 				if (n > 0)
 				{
-					if (write(sock2server, buf, strlen(buf)) < 0) {
+					if (SSL_write(ssl, buf, strlen(buf)) < 0) {
 						perror("write");
 						break;
 					}
@@ -75,5 +80,6 @@ int exec_bin(int sock2server, const char* bin2exec){
 			close(tube[0]);
 			break;
 	}
+	SSL_free(ssl);
 	return 0;
 }

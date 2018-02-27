@@ -7,14 +7,17 @@
 #include <time.h>
 #include <unistd.h>
 #include <sys/socket.h>
-#include <include/server_tool.h>
+#include <openssl/ssl.h>
+
 #include <include/xml.h>
+#include <include/ssl.h>
+#include <include/server_tool.h>
 
 void usage(int argc, char* argv[]){
 	printf("usage : %s [port]\n", argv[0]);
 }
 
-int main (int argc, char* argv[])
+int main(int argc, char* argv[])
 {
 	char *xmlfile = NULL;
 	if (argc == 3 && !strcmp(argv[1], "-x")){
@@ -34,5 +37,6 @@ int main (int argc, char* argv[])
 		}
 	}
 	tcp_server(port);
+	SSL_CTX_free(ctx);
 	return 0;
 }
