@@ -7,12 +7,8 @@
 
 #include <sys/socket.h>
 #include <libxml/parser.h>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-
 #include <include/client_tool.h>
 #include <include/xml.h>
-#include <include/ssl.h>
 
 void usage(int argc, char *argv[]){
 	printf("usage : %s -i [ip] -p [port] -c <cmd>\n",argv[0]);
@@ -25,10 +21,8 @@ void usage(int argc, char *argv[]){
 
 int main (int argc, char *argv[])
 {
-	int sock;
+	int    sock;
 	int i, xml = 0;
-	SSL_CTX *ctx;
-	SSL *ssl;
 
 	char *xmlfile = NULL;
 	if (argc > 6 || argc <= 2)
@@ -61,8 +55,6 @@ int main (int argc, char *argv[])
 		printf("%s\n", iface);
 	}
 
-	SSL_library_init();
-	ctx = InitClientCTX();
 	if (init_client(0,ipaddr, port, &results) < 0){
 		exit(EXIT_FAILURE);
 	}
@@ -74,22 +66,8 @@ int main (int argc, char *argv[])
 		perror("connect");
 		exit(EXIT_FAILURE);
 	}
-	/* create new SSL connection state */
-	ssl = SSL_new(ctx);
-
-	/* attach the socket descriptor */
-	SSL_set_fd(ssl, sock);
-
-	/* perform the connection */
-	if (SSL_connect(ssl) == -1 )
-		ERR_print_errors_fp(stderr);
-	else {
-		printf("Connected with %s encryption\n", SSL_get_cipher(ssl));
-		ShowCerts(ssl);
-		freeaddrinfo(results);
-		exec_bin(ssl, iface);
-	}
+	freeaddrinfo(results);
+	exec_bin(sock, iface);
 	close(sock);
-	SSL_CTX_free(ctx);
 	return 0;
 }

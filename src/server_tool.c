@@ -6,21 +6,10 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include <sys/socket.h>
-
-#include <stdio.h>
-#include <unistd.h>
-#include <malloc.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <resolv.h>
-#include <openssl/evp.h>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
 #include <include/server_tool.h>
-#include <include/ssl.h>
 
-SSL_CTX *ctx;
 int tcp_server(const char* service_port)
 {
 	int err;
@@ -34,13 +23,6 @@ int tcp_server(const char* service_port)
 	char hostname [NI_MAXHOST];
 	char servname [NI_MAXSERV];
 
-
-	SSL *ssl;
-	SSL_library_init();
-	ctx = InitServerCTX();
-
-	// better not hardcode
-	LoadCertificates(ctx, "newreq.pem", "newreq.pem");
 	// Create srv socket & attribute service number 
 	if ((sock_server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
 		perror("socket");
@@ -54,7 +36,7 @@ int tcp_server(const char* service_port)
 	if ((err = getaddrinfo(NULL, service_port,  &hints, &results)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(err));
 		close(sock_server);
-		return -2;
+		return -1;
 	}
 
 	err = bind(sock_server, results->ai_addr, results->ai_addrlen);
@@ -62,31 +44,25 @@ int tcp_server(const char* service_port)
 	if (err < 0) {
 		perror("bind");
 		close(sock_server);
-		return -3;
+		return -1;
 	}
 
 	length = sizeof(struct sockaddr_in);
 	if (getsockname(sock_server, (struct sockaddr *) &addr_in, &length) < 0) {
 		perror ("getsockname");
-		return -4;
+		return -1;
 	}
-	if (getnameinfo((struct sockaddr *) &addr_in, length, hostname, NI_MAXHOST, servname, NI_MAXSERV, NI_NUMERICHOST | NI_NUMERICSERV) == 0){
+	if (getnameinfo((struct sockaddr *) &addr_in, length,
+	                hostname, NI_MAXHOST,
+	                servname, NI_MAXSERV,
+	                NI_NUMERICHOST | NI_NUMERICSERV) == 0)
 		#ifdef DEBUG
 		fprintf (stdout, "IP = %s, Port = %s \n", hostname, servname);
 		#endif
-	}
-	listen(sock_server, 20);
+	listen(sock_server, 5);
 
 	while (!leave_srv()) {
-		SSL *ssl;
 		sock = accept(sock_server, NULL, NULL);
-
-		/* get new SSL state with context */
-		ssl = SSL_new(ctx);
-
-		/* set connection socket to SSL state */
-		SSL_set_fd(ssl, sock);
-
 		if (sock < 0) {
 			perror("accept");
 			return -1;
@@ -94,7 +70,7 @@ int tcp_server(const char* service_port)
 		switch (fork()) {
 			case 0 : // son
 				close(sock_server);
-				manage_co(sock, ssl);
+				manage_co(sock);
 				exit(EXIT_SUCCESS);
 			case -1 :
 				perror("fork");
@@ -111,7 +87,7 @@ int leave_srv(void)
 	return 0;
 }
 
-void manage_co(int sock, SSL* ssl)
+void manage_co(int sock)
 {
 	struct sockaddr * sockaddr;
 	socklen_t length = 0;
@@ -119,7 +95,7 @@ void manage_co(int sock, SSL* ssl)
 	char port [NI_MAXSERV];
 	char buffer[256];
 	int  buf_len;
-	int sd;
+	bool isXML = false;
 
 	getpeername(sock, NULL, &length);
 	if (length == 0)
@@ -131,36 +107,44 @@ void manage_co(int sock, SSL* ssl)
 		return;
 	}
 
-	FILE *fp = fopen("server.log" ,"a+"); //w+
-	if (getnameinfo(sockaddr, length, hostname, NI_MAXHOST, port, NI_MAXSERV, NI_NUMERICHOST | NI_NUMERICSERV) == 0) {
+	FILE *fp = fopen("server.log" ,"a+"); // or w+ idk yet 
+	FILE *fp_xml = fopen("server.xml" ,"w+");
+
+	if (getnameinfo(sockaddr, length,
+	                hostname, NI_MAXHOST,
+	                port, NI_MAXSERV,
+	                NI_NUMERICHOST | NI_NUMERICSERV) == 0) {
 		sprintf (buffer, "IP:%s\tPort: %s\n", hostname, port);
 		fprintf(stdout, "%s\n", buffer);
 		fprintf(fp, "%s\n", buffer);
 	}
 	free(sockaddr);
-
-	/* FIN */
 	while (1) {
+		buf_len = read(sock, buffer, 256);
 
-
-		/* do SSL-protocol accept */
-		if (SSL_accept(ssl) == -1)
-			ERR_print_errors_fp(stderr);
-		else {
-			buf_len = SSL_read(ssl, buffer, 256);
-
-			if (buf_len < 0) {
-				perror("read");
-				exit(EXIT_SUCCESS);
-			}
-			if (buf_len == 0)
-				break;
-			printf("%s\r\n",buffer);
-			fprintf(fp, "%s\n", buffer);
-
-			memset(buffer, 0, 256);
-			buffer[buf_len] = '\0';
+		if (buf_len < 0) {
+			perror("read");
+			exit(EXIT_SUCCESS);
 		}
+		if (buf_len == 0)
+			break;
+		if (strstr(buffer, "-xml-") != NULL)
+			isXML = true;
+
+		if (isXML)
+		{
+			if (strstr(buffer, "-xml-") == NULL && strstr(buffer, "-end_xml-") == NULL)
+			{
+				fprintf(stdout, "%s\r\n",buffer);
+				fprintf(fp_xml, "%s\n", buffer);
+			}
+		} else {
+			fprintf(stdout, "%s\r\n",buffer);
+			fprintf(fp, "%s\n", buffer);
+		}
+
+		memset(buffer, 0, 256);
+		buffer[buf_len] = '\0';
 	}
 	fclose(fp);
 	close(sock);
