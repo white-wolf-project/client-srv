@@ -130,7 +130,12 @@ void manage_co(int sock)
 			break;
 		if (strstr(buffer, "-xml-") != NULL)
 			isXML = true;
-
+		else {
+			if (strstr(buffer, "-end_xml-") != NULL)
+			{
+				isXML = false;
+			}
+		}
 		if (isXML)
 		{
 			if (strstr(buffer, "-xml-") == NULL && strstr(buffer, "-end_xml-") == NULL)
