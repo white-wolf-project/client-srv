@@ -108,7 +108,7 @@ void manage_co(int sock)
 	}
 
 	FILE *fp = fopen("server.log" ,"a+"); // or w+ idk yet 
-	FILE *fp_xml = fopen("server.xml" ,"w+");
+	FILE *fp_xml = NULL;
 
 	if (getnameinfo(sockaddr, length,
 	                hostname, NI_MAXHOST,
@@ -128,11 +128,15 @@ void manage_co(int sock)
 		}
 		if (buf_len == 0)
 			break;
-		if (strstr(buffer, "-xml-") != NULL)
+
+		if (strstr(buffer, "-xml-") != NULL){
 			isXML = true;
+			fp_xml = fopen("server.xml" ,"w+");
+		}
 		else {
 			if (strstr(buffer, "-end_xml-") != NULL)
 			{
+				fclose(fp_xml);
 				isXML = false;
 			}
 		}
@@ -151,6 +155,7 @@ void manage_co(int sock)
 		memset(buffer, 0, 256);
 		buffer[buf_len] = '\0';
 	}
+	fclose(fp_xml);
 	fclose(fp);
 	close(sock);
 }
